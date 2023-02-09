@@ -38,7 +38,7 @@ Z: パワーオンリセット
 
 詳細は電気刺激装置説明書参照
 """
-module ElectroStimulatorControlers
+module ElectroStimulatorControllers
 
 export send, Stimulator
 
@@ -189,5 +189,3 @@ function send(device::Stimulator, command, other)
 end
 
 end
-
-const UEC = ElectroStimulatorControlers
