@@ -53,7 +53,7 @@ mutable struct Stimulator
 			x=new(SerialPort(port, baudrate))
 			finalizer(x) do x
 				close(x.serial)
-				println("closed the port \"$port\"")
+				@async println("closed the port \"$port\"") #なぜか@asyncを入れろとのこと．
 			end
 			x
 		catch
@@ -74,7 +74,7 @@ end
   - キャリアONデューティー 0 - 100
 ```
 """
-function send(device::Stimulator, sym, ::Val{:A}=Val(Symbol(sym))
+function send(device::Stimulator, sym, ::Val{:A}
 				;fr=10000, frequency::Int=fr
 				,duty::Int=50)
 	#* validity check
@@ -108,7 +108,7 @@ end
   - 波形可変ステップ 1, 2, 4, 5
 ```
 """
-function send(device::Stimulator, sym, ::Val{:B}=Val(Symbol(sym))
+function send(device::Stimulator, sym, ::Val{:B}
 				;ch=0, channel=ch
 				,V=30, voltage=V
 				,P=0,  potentiometer::Int=P
@@ -143,7 +143,7 @@ end
   - 各ポートの On/Off [true, false, ... (25 port 分)] (true(1) / false(0))
 ```
 """
-function send(device::Stimulator, sym, ::Val{:C}=Val(Symbol(sym))
+function send(device::Stimulator, sym, ::Val{:C}
 				;CHs=fill(0,25),channels=CHs
 				,on_off=fill(false,25))
 	#* validity check
@@ -156,12 +156,14 @@ end
 """
 :Eコマンドは刺激装置からの出力を受け取る．
 """
-function send(device, sym, ::Val{:E}=Val(Symbol(sym)))
+function send(device::Stimulator, sym, ::Val{:E})
 	send(device, :E, false)
 	sleep(0.1)
 	readavailable(device.serial) |> print
 	return
 end
+
+send(device, sym; karg...) = send(device, sym, Val(Symbol(sym)); karg...)	
 
 """
     send(device, no_arg_command)
