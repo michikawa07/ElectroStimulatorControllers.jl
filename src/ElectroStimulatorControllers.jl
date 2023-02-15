@@ -70,8 +70,8 @@ end
 
 ```
 :A -> キャリア周波数設定
-  - キャリア周波数 1000 - 24000
-  - キャリアONデューティー 0 - 100
+  - frequency : キャリア周波数 1000 - 24000
+  - duty : キャリアONデューティー 0 - 100
 ```
 """
 function send(device::Stimulator, sym, ::Val{:A}
@@ -99,13 +99,13 @@ end
 
 ```
 :B -> 各チャンネル設定 
-  - 設定チャンネル
-  - 電圧値 30, 60, 90
-  - ポテンショメータ 0 - 127
-  - バースト周波数 0 - 400
-  - バーストONデューティー 0～100
-  - 波形タイプ 0：方形, 1：正弦, 2：三角
-  - 波形可変ステップ 1, 2, 4, 5
+  - channel : 設定チャンネル 0, 1, 2, 3
+  - voltage : 電圧値 30, 60, 90
+  - potentiometer : ポテンショメータ 0 - 127
+  - frequency : バースト周波数 0 - 400
+  - duty : バーストONデューティー 0～100
+  - type : 波形タイプ 0：方形, 1：正弦, 2：三角
+  - step : 波形可変ステップ 1, 2, 4, 5
 ```
 """
 function send(device::Stimulator, sym, ::Val{:B}
@@ -117,7 +117,7 @@ function send(device::Stimulator, sym, ::Val{:B}
 				,type=0
 				,step=1)
 	#* validity check
-	channel in 0:7          || error("the value of channel must be 0 - 7")
+	channel in 0:3          || error("the value of channel must be 0 - 3")
 	voltage in (30, 60, 90) || error("the value of voltage must be 30, 60 or 90")
 	0 ≤ potentiometer ≤ 100 || error("the value of potentiometer is out of range (0-100)")
 	0 ≤   frequency   ≤ 400 || error("the value of frequency is out of range (0-400)") 
@@ -139,15 +139,15 @@ end
 
 ```
 :C -> 刺激信号個別選択 
-  - 各ポートに接続するチャンネルのベクトル [0, 1, ... (25 port 分)] (各0 - 7の整数)
-  - 各ポートの On/Off [true, false, ... (25 port 分)] (true(1) / false(0))
+  - channels : 各ポートに接続するチャンネルのベクトル [0, 1, ... (25 port 分)] (各0 - 7の整数)
+  - on_off : 各ポートの On/Off [true, false, ... (25 port 分)] (true(1) / false(0))
 ```
 """
 function send(device::Stimulator, sym, ::Val{:C}
 				;CHs=fill(0,25),channels=CHs
 				,on_off=fill(false,25))
 	#* validity check
-	#all(channels .∈ 0:7) || error("the value of channel must be 0 - 7")
+	all(ch-> ch ∈ 0:7, channels) || error("the value of channels(CHs) must be 0 - 7")
 	channels = string.(channels)
 	on_off = [o==1 ? "on_" : "off" for o in on_off]
 	send(device, "C,$(join(permutedims([channels on_off]),",")),")
