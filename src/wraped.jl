@@ -1,42 +1,8 @@
 
 export readstatus, readdevice, switchON, switchOFF
-export setconnections, setcarrierfrequency, setcarrierduty
+export setconnections, setcarrierfrequency, setcarrierduty, setvolatge
 
-readdevice(dev) = begin 
-	sleep(0.1)
-	send(dev, :E)
-	sleep(0.1)
-	readavailable(dev.serial) |> print
-end
-readstatus(dev) = dev.status
-
-switchON(dev, nums_on) = begin
-	on_off = [n ∈ nums_on for n in 1:25 ]
-	channels = haskey(dev.status, :connection_channels) ? 
-							dev.status[:connection_channels] : fill(0, 25)
-	send( dev, :C; channels, on_off)
-	dev.status[:on_off_channels] = on_off
-	dev.status
-end
-switchON(dev, T, nums_on) = begin
-	@async begin
-		sleep(T)
-		switchOFF(dev, 1:25)
-	end
-	switchON(dev, nums_on)
-end
-switchOFF(dev, nums_off) = switchON(dev, filter(i->i∉nums_off, 1:25))
-
-setconnections( dev, channels=fill(0,25) ) = begin
-	channels = [channels; fill(0, 25-length(channels))]
-	on_off = haskey(dev.status, :on_off_channels) ? 
-					dev.status[:on_off_channels] : falses(25)
-	send(dev, :C; channels, on_off)
-	dev.status[:connection_channels] = channels
-end
-setconnections( dev, connections::Dict{Integer, Integer} ) = begin
-end
-
+#* Aコマンドのラッパー
 setcarrierfrequency(dev,  frequency) = begin
 	if haskey(dev.status, :carrier_duty) 
 		send(dev, :A; frequency, duty=dev.status[:carrier_duty])
@@ -53,4 +19,62 @@ setcarrierduty(dev,  duty) = begin
 		send(dev, :A; duty )
 	end
 	dev.status[:carrier_duty] = duty
+end
+
+#* Bコマンドのラッパー
+setburstduty() = begin
+	
+end
+
+setvolatge(dev, ch, voltage) = begin
+	@assert voltage<90 "dangerous, voltage($voltage V) must be smaller than 90 V"
+	V = voltage>60 ? 90 : voltage>30 ? 60 : 30
+	P = (127 * voltage) ÷ V
+	P*V/127>15 && @warn "dangerous, voltage($voltage V) may be too high"
+	@warn P*V/127
+	# duty = haskey(dev.status, :ports_connection) ? 
+							# dev.status[:ports_connection] : fill(-1, 25)
+	send( dev, :B; ch, V, P, duty=30, type=0, step=1)
+end
+
+#* Cコマンドのラッパー
+switchON(dev, ports_on) = begin
+	on_off = [n ∈ ports_on for n in 1:25 ]
+	connections = haskey(dev.status, :ports_connection) ? 
+							dev.status[:ports_connection] : fill(-1, 25)
+	send( dev, :C; connections, on_off)
+	dev.status[:ports_on_off] = on_off
+	dev.status
+end
+switchON(dev, T, ports_on) = begin
+	@assert T < 10 "dangerous, stimulate time T must be smaller than 10 s"
+	@async begin 
+		sleep(T)
+		switchOFF(dev, 1:25)
+	end
+	switchON(dev, ports_on)
+end
+switchOFF(dev, ports_off) = switchON(dev, filter(i->i∉ports_off, 1:25))
+
+setconnections( dev, connections=fill(-1,25) ) = begin
+	@assert 0 ≤ length(connections) ≤ 25 
+	connections = [connections; fill(-1, 25-length(connections))]
+	on_off = haskey(dev.status, :ports_on_off) ? 
+					dev.status[:ports_on_off] : falses(25)
+	send(dev, :C; connections, on_off)
+	dev.status[:ports_connection] = connections
+end
+setconnections( dev, connections::Vector{Pair{Int, Int}} ) = begin
+	error()
+	dic = Dict(connections)
+	connections = fill(1,25)
+	setconnections(dev, connections)
+end
+
+#* Eコマンドのラッパー
+readdevice(dev) = begin 
+	sleep(0.1)
+	send(dev, :E)
+	sleep(0.1)
+	readavailable(dev.serial) |> print
 end
