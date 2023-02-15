@@ -66,30 +66,31 @@ function send(device::Stimulator, sym, ::Val{:B}
 end
 
 """
-    send(device, :C, channels = [0,7,...,0] (=CHs),
-                     on_off   = [0,1,...,0] )
+    send(device, :C, connections  = [-1,+1,...,+4] (=cons),
+                     on_off = [true,false,...,true] )
 
-:Cコマンドは25ある電極ポートの ON/OFF と 各チャンネルの接続関係を規定する．
+:Cコマンドは25ある電極ポートの ON/OFF と 4つのチャンネルの接続関係を規定する．
 ```
 :C -> 刺激信号個別選択 
-  - channels : 各ポートに接続するチャンネルのベクトル 
-  		ex [0, 1, ... (25 port 分)] (各0 - 7の整数)
+  - connections : 各ポートに接続するチャンネルのベクトル 
+  		ex [-1, +1, ... (25 port 分)] (各 ±1, ..., ±4 )
   - on_off : 各ポートの On/Off 
   		ex [true, false, ... (25 port 分)] (true(1) / false(0))
 ```
 """
 function send(device::Stimulator, sym, ::Val{:C}
-				;CHs=fill(0,25),channels=CHs
+				;cons=fill(-1,25), connections=cons
 				,on_off=fill(false,25))
 	#* validity check
-	@assert length(channels)==25 "the channels must have 25 elements (each value is 0 - 7)"
-	@assert length(on_off)==25 "the channels must have 25 elements (each value is true/1 or false/0)"
-	@assert all(ch-> ch ∈ 0:7 && isinteger(ch), channels) "the each value of channels(CHs) must be 0 - 7"
-	@assert all(ch-> ch ∈ (0,1) && isinteger(ch), on_off) "the each  value of on_off must be true/1 or false/0"
-	channels = string.(channels)
+	@assert length(connections)==25 "the connections(cons) must have 25 elements (each value is ±1, ..., ±4)"
+	@assert length(on_off)==25 "the connections must have 25 elements (each value is true/1 or false/0)"
+	@assert all(p-> abs(p) ∈  1:4  && isinteger(p), connections) "the each value of connections(cons) must be ±1, ±2, ±3 or ±4"
+	@assert all(o->     o  ∈ (0,1) && isinteger(o), on_off) "the each value of on_off must be true/1 or false/0"
+	connections = string.( connections .|> x-> x>0 ? 2x-1 : -2x-2 ) # ±1, ±2, ±3, ±4 => (0,1), (2,3), (4,5), (6,7) に変換
 	on_off = [o==1 ? "on_" : "off" for o in on_off]
-	send(device, "C,$(join(permutedims([channels on_off]),",")),")
+	send(device, "C,$(join(permutedims([connections on_off]),",")),")
 end
+
 
 """
 :Eコマンドは刺激装置からの出力を受け取る．
@@ -116,7 +117,7 @@ send(device, sym; karg...) = send(device, sym, Val(Symbol(sym)); karg...)
 function send(device::Stimulator, command, other)
 	command = "\x02$command\x03"
 	try
-		write(device.serial, command)
+		# write(device.serial, command)
 		@info "success to send :" command
 	catch e
 		@error "failure to send :" command
