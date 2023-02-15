@@ -15,11 +15,10 @@ function send(device::Stimulator, sym, ::Val{:A}
 				;fr=10000, frequency::Int=fr
 				,duty::Int=50)
 	#* validity check
-	1000 ≤ frequency ≤ 24000 || error("the value of frequency is out of range (1000 - 24000)") 
-	   0 ≤   duty    ≤   100 || error("the value of duty is out of range (0 - 100)")
+	@assert 1000 ≤ frequency ≤ 24000 "the value of frequency is out of range (1000 - 24000)" 
+	@assert    0 ≤   duty    ≤   100 "the value of duty is out of range (0 - 100)"
 	#=5桁固定=# frequency = lpad(frequency, 5, "0") 
-	#=3桁固定=# 	  duty = lpad(duty, 3, "0") 
-	
+	#=3桁固定=# 	  duty = lpad(duty, 3, "0")
 	send(device, "A,$frequency,$duty,")
 end
 
@@ -45,25 +44,24 @@ end
 ```
 """
 function send(device::Stimulator, sym, ::Val{:B}
-				;ch=0, channel=ch
-				,V=30, voltage=V
+				;ch=0, channel::Int=ch
+				,V=30, voltage::Int=V
 				,P=0,  potentiometer::Int=P
 				,fr=100, frequency::Int=fr
 				,duty::Int=50
-				,type=0
-				,step=1)
+				,type::Int=0
+				,step::Int=1)
 	#* validity check
-	channel in 0:3          || error("the value of channel must be 0 - 3")
-	voltage in (30, 60, 90) || error("the value of voltage must be 30, 60 or 90")
-	0 ≤ potentiometer ≤ 100 || error("the value of potentiometer is out of range (0-100)")
-	0 ≤   frequency   ≤ 400 || error("the value of frequency is out of range (0-400)") 
-	0 ≤     duty      ≤ 100 || error("the value of duty is out of range (0-100)")
-	type in (0, 1, 2)       || error("the value of type must be 0 (rectangle), 1 (sin), 2 (triangle)")
-	step in (1,2,4,5)       || error("the value of step must be 1, 2, 4 or 5")
+	@assert channel in 0:3           "the value of channel must be 0 - 3"
+	@assert voltage in (30, 60, 90)  "the value of voltage must be 30, 60 or 90"
+	@assert 0 ≤ potentiometer ≤ 100  "the value of potentiometer is out of range (0-100)"
+	@assert 0 ≤   frequency   ≤ 400  "the value of frequency is out of range (0-400)" 
+	@assert 0 ≤     duty      ≤ 100  "the value of duty is out of range (0-100)"
+	@assert type in (0, 1, 2)        "the value of type must be 0 (rectangle), 1 (sin), 2 (triangle)"
+	@assert step in (1,2,4,5)        "the value of step must be 1, 2, 4 or 5"
 	#=3桁固定=# potentiometer = lpad(potentiometer, 3, "0")
 	#=3桁固定=# 	 frequency = lpad(frequency, 3, "0")
 	#=3桁固定=# 	 		duty = lpad(duty, 3, "0")
-	
 	send(device, "B,$channel,$voltage,$potentiometer,$frequency,$duty,$type,$step,")
 end
 
@@ -84,7 +82,10 @@ function send(device::Stimulator, sym, ::Val{:C}
 				;CHs=fill(0,25),channels=CHs
 				,on_off=fill(false,25))
 	#* validity check
-	all(ch-> ch ∈ 0:7, channels) || error("the value of channels(CHs) must be 0 - 7")
+	@assert length(channels)==25 "the channels must have 25 elements (each value is 0 - 7)"
+	@assert length(on_off)==25 "the channels must have 25 elements (each value is true/1 or false/0)"
+	@assert all(ch-> ch ∈ 0:7 && isinteger(ch), channels) "the each value of channels(CHs) must be 0 - 7"
+	@assert all(ch-> ch ∈ (0,1) && isinteger(ch), on_off) "the each  value of on_off must be true/1 or false/0"
 	channels = string.(channels)
 	on_off = [o==1 ? "on_" : "off" for o in on_off]
 	send(device, "C,$(join(permutedims([channels on_off]),",")),")
@@ -94,11 +95,7 @@ end
 :Eコマンドは刺激装置からの出力を受け取る．
 """
 function send(device::Stimulator, sym, ::Val{:E})
-	sleep(0.1)
 	send(device, :E, false)
-	sleep(0.1)
-	readavailable(device.serial) |> print
-	return
 end
 
 send(device, sym; karg...) = send(device, sym, Val(Symbol(sym)); karg...)	
@@ -122,8 +119,7 @@ function send(device::Stimulator, command, other)
 		write(device.serial, command)
 		@info "success to send :" command
 	catch e
-		println(e)
 		@error "failure to send :" command
+		rethrow(e)
 	end
-	return
 end
