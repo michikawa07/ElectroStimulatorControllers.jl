@@ -23,7 +23,7 @@ function send(device::Stimulator, sym, ::Val{:A}
 end
 
 """
-    send(device, :B, channel       = 0 (=ch),
+    send(device, :B, channel       = 1 (=ch),
                      voltage       = 30 (=V), 
                      potentiometer = 10 (=P), 
                      frequency     = 100 (=fr), 
@@ -34,7 +34,7 @@ end
 :Bコマンドは4チャンネルの内の1つの詳細を変更する．
 ```
 :B -> 各チャンネル設定 
-  - channel : 設定チャンネル 0, 1, 2, 3
+  - channel : 設定チャンネル 1, 2, 3, 4
   - voltage : 電圧値 30, 60, 90
   - potentiometer : ポテンショメータ 0 - 127
   - frequency : バースト周波数 0 - 400
@@ -44,7 +44,7 @@ end
 ```
 """
 function send(device::Stimulator, sym, ::Val{:B}
-				;ch=0, channel::Int=ch
+				;ch=1, channel::Int=ch
 				,V=30, voltage::Int=V
 				,P=0,  potentiometer::Int=P
 				,fr=100, frequency::Int=fr
@@ -52,13 +52,14 @@ function send(device::Stimulator, sym, ::Val{:B}
 				,type::Int=0
 				,step::Int=1)
 	#* validity check
-	@assert channel in 0:3           "the value of channel must be 0 - 3"
+	@assert channel in 1:4           "the value of channel must be 1 - 4"
 	@assert voltage in (30, 60, 90)  "the value of voltage must be 30, 60 or 90"
 	@assert 0 ≤ potentiometer ≤ 100  "the value of potentiometer is out of range (0-100)"
 	@assert 0 ≤   frequency   ≤ 400  "the value of frequency is out of range (0-400)" 
 	@assert 0 ≤     duty      ≤ 100  "the value of duty is out of range (0-100)"
 	@assert type in (0, 1, 2)        "the value of type must be 0 (rectangle), 1 (sin), 2 (triangle)"
 	@assert step in (1,2,4,5)        "the value of step must be 1, 2, 4 or 5"
+	#=0始まり =#       channel = channel-1
 	#=3桁固定=# potentiometer = lpad(potentiometer, 3, "0")
 	#=3桁固定=# 	 frequency = lpad(frequency, 3, "0")
 	#=3桁固定=# 	 		duty = lpad(duty, 3, "0")
@@ -117,7 +118,7 @@ send(device, sym; karg...) = send(device, sym, Val(Symbol(sym)); karg...)
 function send(device::Stimulator, command, other)
 	command = "\x02$command\x03"
 	try
-		# write(device.serial, command)
+		write(device.serial, command)
 		@info "success to send :" command
 	catch e
 		@error "failure to send :" command
