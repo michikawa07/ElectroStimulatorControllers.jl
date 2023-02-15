@@ -49,6 +49,7 @@ using Logging
 const baudrate = 230400 #刺激装置側の都合でこれは固定
 mutable struct Stimulator 
 	serial
+	status
 	Stimulator(port) = begin
 		try 
 			x=new(SerialPort(port, baudrate), Dict{Symbol, Any}())
@@ -63,7 +64,9 @@ mutable struct Stimulator
 		end
 	end
 end
+Base.show(io::IO, x::Stimulator) = dump(IOContext(io, :limit => true), x, maxdepth=1)
 
 include("primitive.jl")
+include("wraped.jl")
 
 end
