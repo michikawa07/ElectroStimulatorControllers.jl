@@ -28,13 +28,20 @@ end
 
 setvolatge(dev, ch, voltage) = begin
 	@assert voltage<90 "dangerous, voltage($voltage V) must be smaller than 90 V"
+	@assert voltage<15 "dangerous, voltage($voltage V) must be smaller than 90 V"
 	V = voltage>60 ? 90 : voltage>30 ? 60 : 30
 	P = (127 * voltage) ÷ V
-	P*V/127>15 && @warn "dangerous, voltage($voltage V) may be too high"
-	@warn P*V/127
+	# P*V/127>15 && @warn "dangerous, voltage($voltage V) may be too high"
 	# duty = haskey(dev.status, :ports_connection) ? 
 							# dev.status[:ports_connection] : fill(-1, 25)
 	send( dev, :B; ch, V, P, duty=30, type=0, step=1)
+end
+
+setvolatge(dev, voltages) = begin
+	@assert length(voltages) == 4 "voltages is must 4 elements"
+	for (i,v) in enumerate(voltages)
+		setvolatge(dev, i, v)
+	end
 end
 
 #* Cコマンドのラッパー
