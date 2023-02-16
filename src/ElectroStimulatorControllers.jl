@@ -67,6 +67,6 @@ end
 Base.show(io::IO, x::Stimulator) = dump(IOContext(io, :limit => true), x, maxdepth=1)
 
 include("primitive.jl")
-include("wraped.jl")
+include("wrapped.jl")
 
 end

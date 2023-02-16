@@ -26,7 +26,7 @@ setburstduty() = begin
 	
 end
 
-setvolatge(dev, ch, voltage) = begin
+setvolatge(dev, channel, voltage) = begin
 	@assert voltage<90 "dangerous, voltage($voltage V) must be smaller than 90 V"
 	@assert voltage<15 "dangerous, voltage($voltage V) must be smaller than 90 V"
 	V = voltage>60 ? 90 : voltage>30 ? 60 : 30
@@ -34,7 +34,7 @@ setvolatge(dev, ch, voltage) = begin
 	# P*V/127>15 && @warn "dangerous, voltage($voltage V) may be too high"
 	# duty = haskey(dev.status, :ports_connection) ? 
 							# dev.status[:ports_connection] : fill(-1, 25)
-	send( dev, :B; ch, V, P, duty=30, type=0, step=1)
+	send( dev, :B; channel, V, P, duty=30, type=0, step=1)
 end
 
 setvolatge(dev, voltages) = begin
