@@ -1,6 +1,8 @@
 using SerialPorts	
 using Logging
 
+export send
+
 """
 	send(device, :A, fr=frequency=10000, duty=50)
 

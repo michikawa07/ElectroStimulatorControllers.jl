@@ -40,13 +40,13 @@ Z: パワーオンリセット
 """
 module ElectroStimulatorControllers
 
-export Stimulator
-export send
-
 using SerialPorts	
 using Logging
 
+export Stimulator
+
 const baudrate = 230400 #刺激装置側の都合でこれは固定
+
 mutable struct Stimulator 
 	serial
 	status
