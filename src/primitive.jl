@@ -1,10 +1,11 @@
-using SerialPorts	
-using Logging
+#: ############################################################################
+#: 電気刺激装置が解釈できる文法にのっとって，文字列を生成，送信してくれる 原始的 primitive な関数たち．
+#: ############################################################################
 
-export send
+export send, disable_info, enable_info
 
 """
-	send(device, :A, fr=frequency=10000, duty=50)
+	send(device, :A; fr=frequency=10000, duty=50)
 
 :Aコマンドは，全体の周波数とduty比を設定する．
 ```
@@ -25,7 +26,7 @@ function send(device::Stimulator, sym, ::Val{:A}
 end
 
 """
-    send(device, :B, channel       = 1 (=ch),
+    send(device, :B; channel       = 1 (=ch),
                      voltage       = 30 (=V), 
                      potentiometer = 10 (=P), 
                      frequency     = 100 (=fr), 
@@ -36,7 +37,7 @@ end
 :Bコマンドは4チャンネルの内の1つの詳細を変更する．
 ```
 :B -> 各チャンネル設定 
-  - channel : 設定チャンネル 1, 2, 3, 4
+  - channel : 設定チャンネル 1, 2, 3, 4 #実際は0 - 3 
   - voltage : 電圧値 30, 60, 90
   - potentiometer : ポテンショメータ 0 - 127
   - frequency : バースト周波数 0 - 400
@@ -69,7 +70,7 @@ function send(device::Stimulator, sym, ::Val{:B}
 end
 
 """
-    send(device, :C, connections  = [-1,+1,...,+4] (=cons),
+    send(device, :C; connections  = [-1,+1,...,+4] (=cons),
                      on_off = [true,false,...,true] )
 
 :Cコマンドは25ある電極ポートの ON/OFF と 4つのチャンネルの接続関係を規定する．
@@ -78,7 +79,7 @@ end
   - connections : 各ポートに接続するチャンネルのベクトル 
   		ex [-1, +1, ... (25 port 分)] (各 ±1, ..., ±4 )
   - on_off : 各ポートの On/Off 
-  		ex [true, false, ... (25 port 分)] (true(1) / false(0))
+  		ex [true, false, ... (25 port 分)] (各 true(=1) , false(=0))
 ```
 """
 function send(device::Stimulator, sym, ::Val{:C}
@@ -126,4 +127,12 @@ function send(device::Stimulator, command, other)
 		@error "failure to send :" command
 		rethrow(e)
 	end
+end
+
+function disable_info()
+	Logging.disable_logging(Logging.Info)
+end
+
+function enable_info()
+	Logging.disable_logging(LogLevel(-1))
 end
