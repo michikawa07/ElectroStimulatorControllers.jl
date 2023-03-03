@@ -2,21 +2,21 @@
 #: 安全のための補助関数
 #: ####################################################
 
-export resetsaftyvoltage, resetsaftytime
+export reset_saftyvoltage, reset_saftytime, increase_saftyvoltage, increase_saftytime
 
 const _safty_voltage = Ref{Int}(15)
-function increasesatyvoltage(val::Int) 
+function increase_saftyvoltage(val::Int) 
 	_safty_voltage[] = val
 	@warn "Now maximum voltate is $(_safty_voltage[]) [V]"
 end
-resetsaftyvoltage() = increasesatyvoltage(15)
+reset_saftyvoltage() = increase_saftyvoltage(15)
 
 const _safty_time = Ref{Int}(10)
-function increasesatytime(val::Int) 
+function increase_saftytime(val::Int) 
 	_safty_time[] = val
 	@warn "Now maximum stimulus time is $(_safty_time[]) [s]"
 end
-resetsaftytime() = increasesatytime(10) 
+reset_saftytime() = increase_saftytime(10) 
 
 #: ####################################################
 #: Wrapper method を使うための struct
@@ -146,7 +146,7 @@ setwavestep() = begin
 end
 
 """
-	setburstfreqency(dev::Stimulator, channel::Channel, voltage)	
+	setburstfreqency(dev::Stimulator, channel::Channel, voltage)
 	setburstfreqency(dev::Stimulator, [ch1_vol, ch2_vol, ch3_vol, ch4_vol])	
 
 channel で指定した電極チャンネルの電圧値 [V] を設定する.
@@ -159,15 +159,14 @@ channel で指定した電極チャンネルの電圧値 [V] を設定する.
 # ch1 の出力電圧を10Vに変更
 setvoltage(dev, 1_ch, 10)
 
-# ch1-4 の出力電圧を5Vに変更
-setvoltage(dev, 1_ch, [5, 5, 5, 5])
+# ch1, 2, 3, 4 の出力電圧を5Vに変更
+setvoltage(dev, [5, 5, 5, 5])
 ```
 """
 setvolatge(dev, channel::Channel, voltage) = begin
 	@assert voltage≤_safty_voltage[] """ !!!Dangerous!!!
 		Voltage($voltage V) must be smaller than $(_safty_voltage[]) V.
-		If you want more high voltage.
-		Please use `increasesatyvoltage(maximum_voltage)` method"""
+		If you want more high voltage. Please use `increase_saftyvoltage(maximum_voltage)` method"""
 	@assert channel ∈ (1_ch:4_ch) "The value of channel must be 1_ch ~ 4_ch"
 	ch = channel.num
 	V = voltage>60 ? 90 : voltage>30 ? 60 : 30
@@ -190,7 +189,20 @@ end
 
 #* Cコマンドのラッパー
 """
-todo 
+	switchON(dev::Stimulator,    ports_on::AbstractVector{Port})
+	switchON(dev::Stimulator, T, ports_on::AbstractVector{Port})
+
+指定したポートのスイッチをオンにする．
+
+#Example
+
+```
+# port1, 2 のスイッチをオンにする
+switchON(dev, 1_ch, 10)
+
+# ch1, 2, 3, 4 の出力電圧を5Vに変更
+setvoltage(dev, [5, 5, 5, 5])
+```
 """
 switchON(dev, ports_on::AbstractVector{Port}) = begin
 	on_off = [ n_p ∈ ports_on for n_p in 1_p:25_p ]
@@ -202,8 +214,7 @@ end
 switchON(dev, T, ports_on::AbstractVector{Port}) = begin
 	@assert T≤_safty_time[] """ !!!Dangerous!!!
 		Stimulus time ($T s) must be smaller than $(_safty_time[]) V.
-		If you want longer time.
-		Please use `increasesatytime(maximum_stimulus_time)` method"""
+		If you want longer time. Please use `increase_saftytime(maximum_stimulus_time)` method"""
 	switchON(dev, ports_on)
 	sleep(T)
 	switchOFF(dev)
@@ -216,7 +227,64 @@ switchOFF(dev, ports_off::AbstractVector{Port}) = switchON(dev, filter( p->p∈�
 switchOFF(dev) = switchOFF(dev, 1_p:25_p)
 
 """
-todo 
+	setconnections(dev, channels::AbstractVector{Channel})
+
+	setconnections(dev, connect_pair::Pair{Channel, Port}...)
+	setconnections(dev, connect_pairs::AbstractVector{Pair{Channel, Port}})
+
+	setconnections(dev, connect_pair::Pair{Channel, P}...) where P<:(AbstractVector)
+	setconnections(dev, connect_pairs::AbstractVector{Pair{Channel, P}}) where P<:(AbstractVector)
+
+	setconnections(dev, connect_pairs::Pair{Tuple{Port, Port}, Channel}...)
+	setconnections(dev, connect_pairs::AbstractVector{Pair{Tuple{Port, Port}, Channel}})
+
+チャンネルとポートの接続を決定する．
+
+#Example
+
+```
+# 以下3つは全て同値な書き方
+setconnections( dev, 
+	[-1_ch, +1_ch, -2_ch, +2_ch, -3_ch, +3_ch, -4_ch, +4_ch, -2_ch, +2_ch] 
+)
+
+setconnections( dev, [ 
+	-3_ch =>  5_p, 
+	+3_ch =>  6_p,
+	-1_ch =>  1_p,
+	+1_ch =>  2_p,
+	-2_ch =>  3_p,
+	+2_ch =>  4_p,
+	-4_ch =>  7_p,
+	+4_ch =>  8_p,
+	-2_ch =>  9_p,
+	+2_ch => 10_p,
+] )
+
+setconnections(dev, [
+	-1_ch => [1_p],
+	+1_ch => [2_p],
+	-2_ch => [3_p,  9_p],
+	+2_ch => [4_p, 10_p],
+	-3_ch => [5_p],
+	+3_ch => [6_p],
+	-4_ch => [7_p],
+	+4_ch => [8_p],
+] )
+
+setconnections( dev, [ 
+	(5_p,  6_p) => 3_ch, 
+	(1_p,  2_p) => 1_ch,
+	(3_p,  4_p) => 2_ch,
+	(7_p,  8_p) => 4_ch,
+	(9_p, 10_p) => 2_ch,
+] )
+#次のような書き方もできる
+setconnections( dev, -3_ch=>5_p, +3_ch=>6_p )
+setconnections( dev, -2_ch=>[3_p, 9_p], +2_ch=>[4_p, 10_p])
+setconnections( dev, (5_p, 6_p)=>3_ch, (9_p, 10_p)=>2_ch )
+
+```
 """
 setconnections( dev, channels::AbstractVector{Channel} ) = begin
 	@assert 0 ≤ length(channels) ≤ 25 
@@ -226,10 +294,25 @@ setconnections( dev, channels::AbstractVector{Channel} ) = begin
 	dev.status[:ports_connection] = connections
 	dev.status
 end
-setconnections( dev, connection_pairs::Vector{Pair{Port, Channel}} ) = begin
+
+setconnections( dev, connect_pair::Pair{Channel, Port}... ) = setconnections(dev, collect(connect_pair))
+setconnections( dev, connect_pairs::AbstractVector{Pair{Channel, Port}} ) = setconnections( dev, [ ch=>[p] for (ch, p) in connect_pairs])
+setconnections( dev, connect_pair::Pair{Channel, P}... ) where P<:AbstractVector = setconnections(dev, collect(connect_pair))
+setconnections( dev, connect_pairs::AbstractVector{Pair{Channel, P}} ) where P<:AbstractVector = begin
 	connections = dev.status[:ports_connection] .*_ch
-	for (p, ch) in connection_pairs
+	for (ch, ports) in connect_pairs, p in ports
 		connections[p.num] = ch
+	end
+	setconnections(dev, connections)
+end
+setconnections( dev, connect_pair::Pair{Channel, P} ) where P<:AbstractVector = setconnections( dev, [connect_pair]) 
+
+setconnections( dev, connect_pairs::Pair{Tuple{Port, Port}, Channel}... ) = setconnections( dev, collect(connect_pairs))
+setconnections( dev, connect_pairs::AbstractVector{Pair{Tuple{Port, Port}, Channel}} ) = begin
+	connections = dev.status[:ports_connection] .*_ch
+	for (p_pair, ch) in connect_pairs
+		connections[p_pair[1].num] = Channel(-ch.num)
+		connections[p_pair[2].num] = Channel(+ch.num)
 	end
 	setconnections(dev, connections)
 end
@@ -247,5 +330,5 @@ readdevice(dev) = begin
 	sleep(0.1)
 	send(dev, :E)
 	sleep(0.1)
-	readavailable(dev.serial) |> print
+	read(dev.serial) |> String |> print
 end

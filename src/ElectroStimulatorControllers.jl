@@ -60,12 +60,10 @@ note 2023/02/13追記:\\
 """
 module ElectroStimulatorControllers
 
-using SerialPorts	# シリアル通信をするための物   
-using Logging     # 表示用
+using LibSerialPort	# シリアル通信をするための物   
+using Logging     	# 表示用
 
-export Stimulator
-
-const baudrate = 230400 #刺激装置側の都合でこれは固定
+export Stimulator, close
 
 """
 	Stimulator(USB_port_name::String)
@@ -106,7 +104,9 @@ mutable struct Stimulator
 	status
 	Stimulator(port) = begin
 		try 
-			x=new(SerialPort(port, baudrate), Dict{Symbol, Any}(
+			baudrate = 230400 #刺激装置側の都合でこれは固定
+			serial_port = LibSerialPort.open(port, baudrate)
+			x=new(serial_port, Dict{Symbol, Any}(
 				:carrier_frequency => 2000,	
 				:carrier_duty => 50,	
 				:burst_frequency => fill(100, 4),	
@@ -116,19 +116,30 @@ mutable struct Stimulator
 				:ports_on_off => falses(25),	
 			))
 			finalizer(x) do x
-				close(x.serial)
+				close(x)
 				@async println("closed the port \"$port\"") #なぜか@asyncを入れろとのこと．
+				sleep(0.01)
+				return x
 			end
 			x
 		catch e
-			@error """
+			port ∉ get_port_list() && return @error """
 				Failure to open serial port "$port" 
-				Now avalable serial port are listed as follows:\n $(list_serialports())"""
-			# rethrow(e)
+				Now avalable serial port are listed as follows:\n $( get_port_list() )"""
+			rethrow(e)
 		end
 	end
+	Stimulator() = @error """Now avalable serial port are listed as follows:\n $( get_port_list() )"""
 end
 Base.show(io::IO, x::Stimulator) = dump(IOContext(io, :limit => true), x, maxdepth=1)
+
+Base.close(dev::Stimulator) = close(dev.serial)
+
+open(f, port::String) = begin
+	device = Stimulator(port)
+	f(device)
+	finalize(device)
+end
 
 include("primitive.jl")
 include("wrapped.jl")

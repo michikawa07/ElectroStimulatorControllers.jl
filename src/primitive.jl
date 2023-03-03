@@ -100,7 +100,7 @@ end
 :Eコマンドは刺激装置からの出力を受け取る．
 """
 function send(device::Stimulator, sym, ::Val{:E})
-	send(device, :E, false)
+	send(device, "E", false)
 end
 
 send(device, sym; karg...) = send(device, sym, Val(Symbol(sym)); karg...)	
@@ -131,8 +131,10 @@ end
 
 function disable_info()
 	Logging.disable_logging(Logging.Info)
+	@warn "disable the information on the command sent"
 end
 
 function enable_info()
 	Logging.disable_logging(LogLevel(-1))
+	@info "enable the information on the command sent"
 end

@@ -4,6 +4,7 @@ authors = ["michikawa07 <michikawa.ryohei@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+LibSerialPort = "a05a14c7-6e3b-5ba9-90a2-45558833e1df"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 SerialPorts = "5d0f9de7-4c7f-54f5-bec2-484e8c04014e"
 
