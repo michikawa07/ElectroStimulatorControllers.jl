@@ -57,7 +57,7 @@ function send(device::Stimulator, sym, ::Val{:B}
 	#* validity check
 	@assert channel in 1:4           "the value of channel must be 1 - 4"
 	@assert voltage in (30, 60, 90)  "the value of voltage must be 30, 60 or 90"
-	@assert 0 ≤ potentiometer ≤ 100  "the value of potentiometer is out of range (0-100)"
+	@assert 0 ≤ potentiometer ≤ 127  "the value of potentiometer is out of range (0-100)"
 	@assert 0 ≤   frequency   ≤ 400  "the value of frequency is out of range (0-400)" 
 	@assert 0 ≤     duty      ≤ 100  "the value of duty is out of range (0-100)"
 	@assert type in (0, 1, 2)        "the value of type must be 0 (rectangle), 1 (sin), 2 (triangle)"
