@@ -3,7 +3,7 @@
 ## sample
 あとで追加します．
 
-```
+```julia
 function sample1()
 	dev = Stimulator("COM5")
 	try
